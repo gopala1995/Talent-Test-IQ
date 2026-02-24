@@ -1,6 +1,6 @@
-import { inngest } from "inngest";
+import { Inngest } from "inngest";
 import { connectionDB } from "./db.js";
-import User from "./models/User.js";
+import User from "../models/User.js";
 
 export const inngest = new Inngest({ id: "talent-test-iq" });
 
