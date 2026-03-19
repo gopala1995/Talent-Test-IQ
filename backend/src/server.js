@@ -8,6 +8,7 @@ import { ENV } from "./lib/env.js"
 import { connectionDB } from "./lib/db.js"
 import { inngest, functions } from "./lib/inngest.js"
 import chatRoutes from "./routes/chatRoutes.js"
+import sessionRoutes from "./routes/sessionRoutes.js"
 
 const app = express()
 
@@ -19,6 +20,8 @@ app.use(clerkMiddleware()) // Add Clerk middleware to handle authentication
 
 app.use("/api/inngest", serve({ client: inngest, functions }))
 app.use("/api/chats", chatRoutes)
+app.use("/api/sessions", sessionRoutes)
+
 
 
 app.get("/health", (req, res) => {
