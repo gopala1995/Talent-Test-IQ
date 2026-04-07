@@ -3,43 +3,45 @@ import Session from "../models/Session.js";
 
 export const createSession = async (req, res) => {
     try {
-        const { problem, difficulty } = req.body
-        const userId = req.user._id
-        const clerkId = req.user.clerkId
+        const { problem, difficulty } = req.body;
+        const userId = req.user._id;
+        const clerkId = req.user.clerkId;
 
         if (!problem || !difficulty) {
-            return res.status(400).json({ message: "Please provide problem and difficulty" })
+            return res.status(400).json({ message: "Problem and difficulty are required" });
         }
 
-        const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`
+        // generate a unique call id for stream video
+        const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-        const session = await Session.create({ problem, difficulty, host: userId, callId })
+        // create session in db
+        const session = await Session.create({ problem, difficulty, host: userId, callId });
 
-        // for videoCall
+        // create stream video call
         await streamClient.video.call("default", callId).getOrCreate({
             data: {
                 created_by_id: clerkId,
-                custom: { problem, difficulty, sessionId: session._id.toString() }
-            }
-        })
+                custom: { problem, difficulty, sessionId: session._id.toString() },
+            },
+        });
 
-        // for chat
+        // chat messaging
         const channel = chatClient.channel("messaging", callId, {
-            name: `${problem} session`,
+            name: `${problem} Session`,
             created_by_id: clerkId,
             members: [clerkId],
-        })
+        });
 
-        await channel.create()
-        res.status(201).json({ session })
+        await channel.create();
 
+        res.status(201).json({ session });
     } catch (error) {
-        console.error("Error creating session:", error.message)
-        res.status(500).json({ message: "Failed to create session" })
+        console.log("Error in createSession controller:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
-export const getActiveSessions = async (req, res) => {
+export const getActiveSessions = async (_, res) => {
     try {
         const sessions = await Session.find({ status: "active" })
             .populate("host", "name profileImage email clerkId")
@@ -58,6 +60,7 @@ export const getMyRecentSessions = async (req, res) => {
     try {
         const userId = req.user._id;
 
+        // get sessions where user is either host or participant
         const sessions = await Session.find({
             status: "completed",
             $or: [{ host: userId }, { participant: userId }],
@@ -72,7 +75,7 @@ export const getMyRecentSessions = async (req, res) => {
     }
 }
 
-export const getSessionsById = async (req, res) => {
+export const getSessionById = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -107,6 +110,7 @@ export const joinSession = async (req, res) => {
             return res.status(400).json({ message: "Host cannot join their own session as participant" });
         }
 
+        // check if session is already full - has a participant
         if (session.participant) return res.status(409).json({ message: "Session is full" });
 
         session.participant = userId;
@@ -131,17 +135,21 @@ export const endSession = async (req, res) => {
 
         if (!session) return res.status(404).json({ message: "Session not found" });
 
+        // check if user is the host
         if (session.host.toString() !== userId.toString()) {
             return res.status(403).json({ message: "Only the host can end the session" });
         }
 
+        // check if session is already completed
         if (session.status === "completed") {
             return res.status(400).json({ message: "Session is already completed" });
         }
 
+        // delete stream video call
         const call = streamClient.video.call("default", session.callId);
         await call.delete({ hard: true });
 
+        // delete stream chat channel
         const channel = chatClient.channel("messaging", session.callId);
         await channel.delete();
 

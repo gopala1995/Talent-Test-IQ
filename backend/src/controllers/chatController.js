@@ -1,18 +1,18 @@
-import { chatClient } from "../lib/stream.js"
+import { chatClient } from "../lib/stream.js";
 
 export const getStreamToken = async (req, res) => {
     try {
-        const token = chatClient.createToken(req.user.clerkId)
+        // use clerkId for Stream (not mongodb _id)=> it should match the id we have in the stream dashboard
+        const token = chatClient.createToken(req.user.clerkId);
 
         res.status(200).json({
             token,
             userId: req.user.clerkId,
-            useName: req.user.name,
-            userImage: req.user.userImage
-        })
+            userName: req.user.name,
+            userImage: req.user.image,
+        });
     } catch (error) {
-        console.log("Error in get=Stream controller", error.message);
-
-        res.status(500).json({ msg: "Internal server error" })
+        console.log("Error in getStreamToken controller:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
