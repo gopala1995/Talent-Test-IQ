@@ -17,7 +17,7 @@ const __dirname = path.resolve();
 
 app.use(express.json());
 app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
-app.use(clerkMiddleware()); // Add Clerk middleware to handle authentication
+app.use(clerkMiddleware()); // Clerk middleware to handle authentication
 
 app.use("/api/inngest", serve({ client: inngest, functions }));
 app.use("/api/chat", chatRoutes);
@@ -30,7 +30,7 @@ app.get("/health", (req, res) => {
 });
 
 
-//our app is ready to deployment from here only
+// app is ready to deployment from here 
 if (ENV.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
